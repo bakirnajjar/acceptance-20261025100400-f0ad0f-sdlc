@@ -1,0 +1,142 @@
+"""Process-local synthetic account and private notification foundations."""
+
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from secrets import token_urlsafe
+from threading import RLock
+from typing import Protocol
+
+from werkzeug.security import check_password_hash, generate_password_hash
+
+Clock = Callable[[], datetime]
+TokenFactory = Callable[[], str]
+
+
+def utc_now() -> datetime:
+    """Return an aware UTC time for expiry and notification timestamps."""
+    return datetime.now(UTC)
+
+
+def secure_token() -> str:
+    """Generate a CSPRNG-backed, 256-bit random URL-safe secret."""
+    return token_urlsafe(32)
+
+
+class PasswordHasher(Protocol):
+    def hash(self, password: str) -> str: ...
+
+    def verify(self, password_hash: str, password: str) -> bool: ...
+
+
+class ScryptPasswordHasher:
+    """Werkzeug scrypt with N=32768, r=8, p=1 and a random per-hash salt."""
+
+    def hash(self, password: str) -> str:
+        return generate_password_hash(password, method="scrypt:32768:8:1")
+
+    def verify(self, password_hash: str, password: str) -> bool:
+        return check_password_hash(password_hash, password)
+
+
+def _synthetic_address(address: str) -> bool:
+    local, separator, domain = address.partition("@")
+    return bool(
+        local
+        and separator
+        and domain.endswith(".test")
+        and domain != ".test"
+        and "@" not in domain
+        and not any(char.isspace() for char in address)
+    )
+
+
+@dataclass(frozen=True)
+class Account:
+    id: str
+    normalized_identifier: str
+    password_hash: str
+    synthetic_owner: str
+
+
+class InMemoryStore:
+    """One-process account state, with all reads and writes guarded by its lock."""
+
+    def __init__(self) -> None:
+        self._lock = RLock()
+        self._accounts: dict[str, Account] = {}
+
+    def add_account(self, account: Account) -> None:
+        if (
+            not _synthetic_address(account.normalized_identifier)
+            or not _synthetic_address(account.synthetic_owner)
+            or account.normalized_identifier != account.normalized_identifier.lower()
+        ):
+            raise ValueError("Only normalized synthetic .test accounts are allowed")
+        with self._lock:
+            if account.normalized_identifier in self._accounts:
+                raise ValueError("Account already exists")
+            self._accounts[account.normalized_identifier] = account
+
+    def get_account(self, identifier: str) -> Account | None:
+        with self._lock:
+            return self._accounts.get(identifier.strip().lower())
+
+    def accounts(self) -> tuple[Account, ...]:
+        with self._lock:
+            return tuple(self._accounts.values())
+
+
+@dataclass(frozen=True)
+class Notification:
+    owner: str
+    kind: str
+    created_at_utc: datetime
+    private_payload: str
+
+
+class NotificationSink:
+    """A private in-memory record of notices, never an outbound transport."""
+
+    def __init__(self) -> None:
+        self._lock = RLock()
+        self._notifications: list[Notification] = []
+
+    def record(self, notification: Notification) -> None:
+        with self._lock:
+            self._notifications.append(notification)
+
+    def snapshot(self) -> tuple[Notification, ...]:
+        with self._lock:
+            return tuple(self._notifications)
+
+
+@dataclass(frozen=True)
+class AppResources:
+    store: InMemoryStore
+    sink: NotificationSink
+    clock: Clock
+    hasher: PasswordHasher
+    token_factory: TokenFactory
+
+    def now(self) -> datetime:
+        now = self.clock()
+        if now.tzinfo is None or now.utcoffset() != timedelta(0):
+            raise ValueError("Clock must return an aware UTC datetime")
+        return now
+
+
+def seed_synthetic_accounts(resources: AppResources) -> None:
+    """Create demo identities without a stored or hard-coded initial password."""
+    if resources.store.accounts():
+        raise ValueError("App store must be empty before synthetic seeding")
+    for identifier in ("alex@example.test", "blair@example.test"):
+        initial_password = resources.token_factory()
+        resources.store.add_account(
+            Account(
+                id=identifier,
+                normalized_identifier=identifier,
+                password_hash=resources.hasher.hash(initial_password),
+                synthetic_owner=identifier,
+            )
+        )

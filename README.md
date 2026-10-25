@@ -1,9 +1,10 @@
 # Reset demo foundation
 
-Python 3.12 Flask/Jinja skeleton for a local synthetic demo. This checkpoint
-only renders a placeholder page; it does not implement sign-in, password reset,
-account storage or notification delivery. No live accounts or credentials are
-needed.
+Python 3.12 Flask/Jinja foundation for a local synthetic demo. The factory
+creates a fresh, process-local locked account store and a separate private
+in-memory notification sink for each app. Its only public route still renders
+a placeholder page: sign-in, reset requests, session handling and notification
+issuance are not implemented. No live accounts or credentials are needed.
 
 ## Setup
 
@@ -42,4 +43,13 @@ uv run --locked reset-demo
 
 Open http://127.0.0.1:5000/ to view the Jinja-rendered placeholder. This
 development server is for local use only. No environment variables are required
-at this stage.
+at this stage. Accounts `alex@example.test` and `blair@example.test` are
+synthetic; each app creates unpredictable initial passwords transiently and
+stores only salted Werkzeug scrypt hashes (N=32768, r=8, p=1). The initial
+passwords are not available for sign-in. The injectable aware UTC clock,
+password hasher, CSPRNG token factory (`secrets.token_urlsafe(32)`), store and
+sink are internal factory arguments for deterministic tests. No public route
+exposes the sink or account state. Sink records are local memory, not owner
+delivery; process restarts discard both accounts and notifications, and multiple
+workers do not share state. This foundation is not production-ready and uses
+no database, external service or deployment configuration.
