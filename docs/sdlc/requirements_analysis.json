@@ -20,6 +20,7 @@
   ],
   "assumptions": [
     "acceptance-20261025100400-f0ad0f-skill-sentinel — the acceptance skill produced this output.",
+    "acceptance-20261025100400-f0ad0f-same-agent-revision",
     "The complete pinned story has no end marker, and the attachment has no visible acceptance marker; neither marker is invented.",
     "For nonexistent accounts, the reset-request response remains independent of account existence; the per-account request limit is applied to known accounts without inventing an unknown-account threshold.",
     "A throttled request does not reveal whether an account exists; the exact throttling response is not specified.",
@@ -164,9 +165,9 @@
     },
     {
       "id": "REQ-010",
-      "statement": "A reset link expires 30 minutes after issuance.",
+      "statement": "A reset link's 30-minute expiry clock starts when the link is issued; at 30 minutes or later after issuance, the link cannot complete a reset.",
       "acceptance_criteria": [
-        "Given a reset link issued at a known time, when it is used at least 30 minutes after issuance, then it cannot complete a reset."
+        "Given a reset link issued at time T, when a reset is attempted with the link exactly 30 minutes after T or later, then the link cannot complete the reset."
       ],
       "source_references": [
         {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}

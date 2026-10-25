@@ -60,9 +60,9 @@ A reset link can complete a password reset only once.
 - Given a valid reset link has completed a reset, when the same link is used again, then it cannot complete another reset.
 
 ### REQ-010 — Link expiry [K]
-A reset link expires 30 minutes after issuance.
+A reset link's 30-minute expiry clock starts when the link is issued; at 30 minutes or later after issuance, the link cannot complete a reset.
 
-- Given a reset link issued at a known time, when it is used at least 30 minutes after issuance, then it cannot complete a reset.
+- Given a reset link issued at time T, when a reset is attempted with the link exactly 30 minutes after T or later, then the link cannot complete the reset.
 
 ### REQ-011 — Password change [S, K]
 Completing a valid reset changes the synthetic account's password.
@@ -122,12 +122,13 @@ No deployment workflows are added to the project.
 ## Assumptions
 
 1. acceptance-20261025100400-f0ad0f-skill-sentinel — the acceptance skill produced this output.
-2. The complete pinned story has no end marker, and the attachment has no visible acceptance marker; neither marker is invented.
-3. For nonexistent accounts, the reset-request response remains independent of account existence; the per-account request limit is applied to known accounts without inventing an unknown-account threshold.
-4. A throttled request does not reveal whether an account exists; the exact throttling response is not specified.
-5. Every active session means every session represented by the application for the account; the session mechanism is not prescribed.
-6. The sign-in button is a visible control only: successful authentication, registration, password policy, reset-link transport, restart persistence, and exact recovery-page layout are not specified by the evidence.
-7. The in-memory notification sink is the observable destination for reset notifications; no external delivery channel is assumed.
+2. acceptance-20261025100400-f0ad0f-same-agent-revision
+3. The complete pinned story has no end marker, and the attachment has no visible acceptance marker; neither marker is invented.
+4. For nonexistent accounts, the reset-request response remains independent of account existence; the per-account request limit is applied to known accounts without inventing an unknown-account threshold.
+5. A throttled request does not reveal whether an account exists; the exact throttling response is not specified.
+6. Every active session means every session represented by the application for the account; the session mechanism is not prescribed.
+7. The sign-in button is a visible control only: successful authentication, registration, password policy, reset-link transport, restart persistence, and exact recovery-page layout are not specified by the evidence.
+8. The in-memory notification sink is the observable destination for reset notifications; no external delivery channel is assumed.
 
 ## Open questions (all non-blocking)
 
