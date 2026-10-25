@@ -108,6 +108,7 @@ def test_tc_001_synthetic_isolated_flask_foundation() -> None:
         "/",
         "/sign-in",
         "/reset/request",
+        "/reset/confirmation",
         "/static/<path:filename>",
     }
 

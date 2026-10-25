@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Reset request received{% endblock %}
+{% block content %}
+  <h1 id="page-title" tabindex="-1">Reset request received</h1>
+  <p class="notice" role="status">If an account is eligible, reset instructions will be sent to its owner.</p>
+  <p class="footer"><a href="{{ url_for('sign_in') }}">Return to sign in</a></p>
+{% endblock %}

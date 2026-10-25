@@ -109,12 +109,12 @@ def test_tc_004_sign_in_control_semantics_and_unavailable_submission() -> None:
 
 
 def test_tc_005_forgot_password_enters_server_rendered_request_page() -> None:
-    """TC-005 entry only: S2 is reachable but no reset request can be accepted."""
+    """TC-005: the named S1 link opens an operative S2 without a sign-in gate."""
     app = create_app()
     client = app.test_client()
     sign_in = Page(client.get("/sign-in").get_data(as_text=True))
     assert ("/reset/request", "Forgot password?") in sign_in.links
-    response = client.get("/reset/request")
+    response = client.get(sign_in.links[0][0])
     html = response.get_data(as_text=True)
     entry = Page(html)
     assert response.status_code == 200
@@ -129,18 +129,13 @@ def test_tc_005_forgot_password_enters_server_rendered_request_page() -> None:
             "type": "email",
             "autocomplete": "email",
             "required": None,
-            "aria-describedby": "request-unavailable",
         },
     ) in entry.elements
+    assert any(
+        tag == "input" and attrs.get("name") == "csrf_token" and attrs.get("value")
+        for tag, attrs in entry.elements
+    )
     assert ("form", {"action": "/reset/request", "method": "post"}) in entry.elements
-    assert (
-        "button",
-        {"type": "submit", "aria-describedby": "request-unavailable"},
-    ) in entry.elements
-    assert ("a", {"href": "/sign-in"}) in entry.elements
-    assert "Reset requests are not available yet." in html
-    submission = client.post("/reset/request", data={"identifier": "alex@example.test"})
-    assert submission.status_code == 501
-    assert b'role="alert">Reset requests are not available yet.' in submission.data
-    assert b"alex@example.test" not in submission.data
-    assert app.extensions["reset_demo"].sink.snapshot() == ()
+    assert ("button", {"type": "submit"}) in entry.elements
+    assert ("/sign-in", "Return to sign in") in entry.links
+    assert "Reset requests are not available yet." not in html

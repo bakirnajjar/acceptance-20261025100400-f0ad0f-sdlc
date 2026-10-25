@@ -67,6 +67,7 @@ def test_tc_018_sessions_are_private_and_sign_in_does_not_authenticate(
         "/",
         "/sign-in",
         "/reset/request",
+        "/reset/confirmation",
         "/static/<path:filename>",
     }
     for path in ("/test/sessions", "/sessions", "/session/create"):

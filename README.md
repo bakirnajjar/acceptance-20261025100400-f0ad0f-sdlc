@@ -2,11 +2,11 @@
 
 Python 3.12 Flask/Jinja foundation for a local synthetic demo. The factory
 creates a fresh, process-local locked account store and a separate private
-in-memory notification sink for each app. The sign-in screen and recovery
-request entry screen are server-rendered. Private service-level reset-link
-issuance and a private, revocable session registry are implemented, but browser
-request submission, authentication and reset completion are not. No live
-accounts or credentials are needed; do not enter real credentials.
+in-memory notification sink for each app. Sign-in, recovery request and
+acknowledgement screens are server-rendered. Private reset-link issuance and
+a revocable session registry are implemented, but browser reset completion
+and authentication are not. No live accounts or credentials are needed; do
+not enter real credentials.
 
 ## Setup
 
@@ -45,12 +45,14 @@ uv run --locked reset-demo
 
 Open http://127.0.0.1:5000/sign-in to view the sign-in card, then follow
 "Forgot password?" to the reset request entry page. Sign-in submissions return
-an explicit unavailable message without authenticating or storing credentials;
-the request entry likewise responds unavailable without accepting/issuing a
-reset until the recovery route is implemented.
-The original foundation placeholder remains at `/`. This development server
-is for local use only. No environment variables are required
-at this stage. Accounts `alex@example.test` and `blair@example.test` are
+an explicit unavailable message without authenticating or storing credentials.
+The request form uses a CSRF token and returns the same generic confirmation
+for eligible, unknown and capped valid identifiers. A known eligible request
+records a private link in the in-memory sink, not an email or public response;
+there is no browser reset-link or completion flow yet. The original foundation
+placeholder remains at `/`. This development server is for local use only.
+No environment variables are required at this stage. Accounts
+`alex@example.test` and `blair@example.test` are
 synthetic; each app creates unpredictable initial passwords transiently and
 stores only salted Werkzeug scrypt hashes (N=32768, r=8, p=1). The initial
 passwords are not available for sign-in. The injectable aware UTC clock,
@@ -66,7 +68,10 @@ or throttle result. For known accounts, its process-local locked store issues up
 to five links in the trailing hour, keeping only token digests and UTC issuance
 times in the store; the raw link is captured solely by the private in-memory
 sink. Unknown or capped requests issue no link. This is not an owner-accessible
-delivery channel or a public recovery route.
+delivery channel. Reset pages use no-store and no-referrer headers; the
+app-local CSRF session cookie is HttpOnly, SameSite=Lax and Secure under HTTPS.
+This local demo has no constant-time HTTP guarantee and no unknown-identifier
+abuse control.
 
 The private store can create opaque, CSPRNG-backed sessions for known account
 IDs, check activity and account ownership, and revoke all represented sessions
@@ -76,4 +81,5 @@ cannot be reused. Tests create two sessions for Alex and one for Blair through
 the store, with no fixture HTTP endpoint or sign-in authentication. Reset
 completion is not implemented yet and therefore does not revoke sessions;
 every future authenticated request must check the store before trusting a
-session. No session cookies or public session routes are implemented.
+session. No authenticated session cookies or public session routes are
+implemented (the request form uses a separate CSRF session cookie).
