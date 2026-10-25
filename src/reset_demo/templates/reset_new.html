@@ -2,12 +2,14 @@
 {% block title %}Choose a new password{% endblock %}
 {% block content %}
   <h1 id="page-title" tabindex="-1">Choose a new password</h1>
+  {% if error %}
+    <p id="reset-error" role="alert" tabindex="-1">{{ error }}</p>
+  {% endif %}
   <form action="{{ url_for('reset_complete') }}" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label for="new-password">New password</label>
-    <input id="new-password" name="new_password" type="password" autocomplete="new-password" required>
+    <input id="new-password" name="new_password" type="password" autocomplete="new-password" required{% if error %} aria-invalid="true" aria-describedby="reset-error"{% endif %}>
     <button type="submit">Reset password</button>
   </form>
-  <p class="footer">Password changes are not available yet.</p>
   <p class="footer"><a href="{{ url_for('sign_in') }}">Return to sign in</a></p>
 {% endblock %}

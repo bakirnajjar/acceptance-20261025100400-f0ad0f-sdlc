@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 from secrets import token_urlsafe
@@ -225,15 +225,10 @@ class InMemoryStore:
         self, secret: str | None, browser_binding: str | None, now: datetime
     ) -> bool:
         """Recheck both intent lifetime and original issuance deadline on every GET."""
-        if (
-            not isinstance(secret, str)
-            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", secret) is None
-            or not isinstance(browser_binding, str)
-            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", browser_binding) is None
-        ):
+        digests = self._intent_digests(secret, browser_binding)
+        if digests is None:
             return False
-        intent_digest = sha256(secret.encode("ascii")).hexdigest()
-        binding_digest = sha256(browser_binding.encode("ascii")).hexdigest()
+        intent_digest, binding_digest = digests
         with self._lock:
             intent = self._reset_intents.get(intent_digest)
             return bool(
@@ -244,6 +239,94 @@ class InMemoryStore:
                     self._reset_tokens.get(intent.token_digest), now
                 )
             )
+
+    @staticmethod
+    def _intent_digests(
+        secret: str | None, browser_binding: str | None
+    ) -> tuple[str, str] | None:
+        if (
+            not isinstance(secret, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", secret) is None
+            or not isinstance(browser_binding, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", browser_binding) is None
+        ):
+            return None
+        return (
+            sha256(secret.encode("ascii")).hexdigest(),
+            sha256(browser_binding.encode("ascii")).hexdigest(),
+        )
+
+    def complete_reset_intent(
+        self,
+        secret: str | None,
+        browser_binding: str | None,
+        password: str,
+        clock: Clock,
+        hasher: PasswordHasher,
+        sink: NotificationSink,
+    ) -> bool:
+        """Recheck and publish all owner effects as one process-local commit."""
+        digests = self._intent_digests(secret, browser_binding)
+        if digests is None or not isinstance(password, str) or not password.strip():
+            return False
+        intent_digest, binding_digest = digests
+        with self._lock:
+            now = clock()
+            intent = self._reset_intents.get(intent_digest)
+            if (
+                intent is None
+                or intent.browser_digest != binding_digest
+                or now >= intent.expires_at_utc
+            ):
+                return False
+            token = self._reset_tokens.get(intent.token_digest)
+            if not self._eligible_reset_token(token, now):
+                return False
+            account = next(
+                (a for a in self._accounts.values() if a.id == token.account_id),
+                None,
+            )
+            if account is None:
+                return False
+
+            # Stage every potentially failing operation before touching published state.
+            password_hash = hasher.hash(password)
+            if not isinstance(password_hash, str) or not password_hash:
+                raise ValueError("Invalid password hash")
+            accounts = {
+                **self._accounts,
+                account.normalized_identifier: replace(
+                    account, password_hash=password_hash
+                ),
+            }
+            tokens = {
+                **self._reset_tokens,
+                token.token_digest: replace(token, consumed_at_utc=now),
+            }
+            sessions = {
+                digest: (
+                    replace(held, active=False)
+                    if held.account_id == account.id
+                    else held
+                )
+                for digest, held in self._sessions.items()
+            }
+            notice = Notification(
+                account.synthetic_owner,
+                "password_reset",
+                now,
+                "Your password has been reset.",
+            )
+
+            def commit() -> None:
+                self._accounts, self._reset_tokens, self._sessions = (
+                    accounts,
+                    tokens,
+                    sessions,
+                )
+
+            sink.record_atomically(notice, commit)
+            return True
 
     @staticmethod
     def _eligible_reset_token(token: ResetToken | None, now: datetime) -> bool:

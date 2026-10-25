@@ -160,9 +160,55 @@ def create_app(
 
     @app.post("/reset/complete")
     def reset_complete():
-        # TASK-007 will implement the atomic reset. Never report success or
-        # change private state here, even for a valid intent and CSRF token.
-        return redirect(url_for("reset_unavailable"), code=303)
+        intent = request.cookies.get("reset_intent")
+        binding = session.get("reset_browser")
+        if not resources.store.check_reset_intent(intent, binding, resources.now()):
+            return redirect(url_for("reset_unavailable"), code=303)
+
+        csrf_token = session.get("reset_csrf")
+        submitted = request.form.getlist("csrf_token")
+        csrf_valid = (
+            isinstance(csrf_token, str)
+            and len(submitted) == 1
+            and compare_digest(csrf_token, submitted[0])
+        )
+        passwords = request.form.getlist("new_password")
+        if not csrf_valid or len(passwords) != 1 or not passwords[0].strip():
+            if not csrf_valid:
+                csrf_token = secure_token()
+                session["reset_csrf"] = csrf_token
+            return (
+                render_template(
+                    "reset_new.html",
+                    csrf_token=csrf_token,
+                    error="Reset could not be completed. Check the form and try again.",
+                ),
+                400,
+            )
+
+        try:
+            completed = resources.store.complete_reset_intent(
+                intent,
+                binding,
+                passwords[0],
+                resources.now,
+                resources.hasher,
+                resources.sink,
+            )
+        except (RuntimeError, ValueError, TypeError, OSError):
+            return (
+                render_template(
+                    "reset_new.html",
+                    csrf_token=csrf_token,
+                    error="Reset could not be completed. Please try again.",
+                ),
+                503,
+            )
+        if not completed:
+            return redirect(url_for("reset_unavailable"), code=303)
+        response = make_response(render_template("reset_success.html"))
+        response.delete_cookie("reset_intent", path="/reset")
+        return response
 
     @app.get("/reset/unavailable")
     def reset_unavailable() -> str:

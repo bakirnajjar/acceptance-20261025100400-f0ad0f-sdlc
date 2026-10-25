@@ -187,18 +187,27 @@ def test_tc_017_unauthorized_intent_and_unavailable_post_have_no_effect():
     other.set_cookie("reset_intent", intent, path="/reset")
     assert other.get("/reset/new").headers["Location"] == "/reset/unavailable"
     before = private_state(resources)
-    for client, form in (
-        (other, {"new_password": "new secret", "csrf_token": csrf}),
-        (owner, {"new_password": "new secret"}),
-        (owner, {"new_password": "new secret", "csrf_token": "forged"}),
-        (owner, {"new_password": "", "csrf_token": csrf}),
-        (owner, {"new_password": "new secret", "csrf_token": csrf}),
+    for client, form, expected in (
+        (other, {"new_password": "new secret", "csrf_token": csrf}, 303),
+        (owner, {"new_password": "new secret"}, 400),
+        (owner, {"new_password": "new secret", "csrf_token": "forged"}, 400),
     ):
         response = client.post("/reset/complete", data=form)
-        assert response.status_code == 303
-        assert response.headers["Location"] == "/reset/unavailable"
+        assert response.status_code == expected
+        if expected == 303:
+            assert response.headers["Location"] == "/reset/unavailable"
         assert_private_response(response, link.removeprefix("/reset/"))
         assert private_state(resources) == before
+    fresh_csrf = re.search(
+        r'name="csrf_token" value="([^"]+)"',
+        owner.get("/reset/new").get_data(as_text=True),
+    ).group(1)
+    empty = owner.post(
+        "/reset/complete", data={"new_password": "", "csrf_token": fresh_csrf}
+    )
+    assert empty.status_code == 400
+    assert 'id="reset-error" role="alert" tabindex="-1"' in empty.get_data(as_text=True)
+    assert private_state(resources) == before
     direct = app.test_client().post(
         "/reset/complete", data={"new_password": "new secret", "csrf_token": csrf}
     )
@@ -206,22 +215,24 @@ def test_tc_017_unauthorized_intent_and_unavailable_post_have_no_effect():
     assert private_state(resources) == before
 
 
-def test_tc_021_form_and_unavailable_are_accessible_without_completion():
-    """TC-021: S4 has named, masked controls; S6 has accessible retry paths."""
+def test_tc_021_form_and_unavailable_are_accessible():
+    """TC-021: S4 has named, masked controls; invalid CSRF has an announced error."""
     app, resources, _, link = fixture()
     client = app.test_client()
     client.get(link)
     page = client.get("/reset/new")
     html = page.get_data(as_text=True)
-    csrf = re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+    assert re.search(r'name="csrf_token" value="([^"]+)"', html)
     assert 'id="new-password" name="new_password" type="password"' in html
     assert '<label for="new-password">New password</label>' in html
     assert ":focus-visible { outline: 3px solid #005fca" in html
     before = private_state(resources)
     rejected = client.post(
-        "/reset/complete", data={"new_password": "not-yet", "csrf_token": csrf}
+        "/reset/complete", data={"new_password": "not-yet", "csrf_token": "forged"}
     )
-    assert rejected.headers["Location"] == "/reset/unavailable"
+    assert rejected.status_code == 400
+    assert 'role="alert"' in rejected.get_data(as_text=True)
+    assert 'aria-describedby="reset-error"' in rejected.get_data(as_text=True)
     assert 'role="status"' in client.get("/reset/unavailable").get_data(as_text=True)
     assert private_state(resources) == before
 
