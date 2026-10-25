@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "stage": "ui_analysis",
+  "source_references": [
+    {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"},
+    {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+    {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+  ],
+  "assumptions": [
+    "Only the sign-in screen is depicted; recovery screens S2–S6 and their routes, copy and layout are proposals, not observations or claims of implementation.",
+    "The gray ******** in the password field is a placeholder, not evidence of typed characters or masking upon entry; a password-type control is proposed to satisfy REQ-003.",
+    "The sign-in button and recovery link are visible affordances, but the image proves no activation, authentication outcome or navigation.",
+    "The five-accepted-requests-per-account-per-hour limit concerns known accounts; treatment of nonexistent identifiers and the exact public response to throttling remain unspecified. Responses must not reveal account existence, but a throttled response is not asserted to equal an ordinary response.",
+    "The reset-link transport, password policy, restart persistence, detailed session model and external notification delivery are not specified; the story requires an in-memory notification sink, not an external sending service.",
+    "Server-rendered recovery pages are proposed to express the story's constraint; neither the rendering method nor any recovery implementation can be verified from the wireframe."
+  ],
+  "open_questions": [
+    {"question": "Does the pictured Sign in button authenticate, and what feedback follows submission?", "blocking": false, "context": "The wireframe shows a button but no interaction or authentication result."},
+    {"question": "What layout, precise wording, navigation and routes should proposed screens S2–S6 use?", "blocking": false, "context": "No recovery screen is pictured; whether invalid, expired and used links share one public message is also open."},
+    {"question": "What should a throttled request display, and how are requests for nonexistent identifiers counted without account disclosure?", "blocking": false, "context": "The standard requires identical ordinary existing/nonexistent responses and at most five accepted requests per account per hour; the throttled UX is not specified."},
+    {"question": "How can a synthetic account owner receive or inspect a reset link recorded through the in-memory notification sink?", "blocking": false, "context": "Neither external delivery nor another link transport is specified."},
+    {"question": "What password policy and confirmation-field behavior, if any, should the new-password form have?", "blocking": false},
+    {"question": "How are active sessions represented and what, if anything, should the success page say about the required sign-out?", "blocking": false},
+    {"question": "What identifier validation, error copy, focus target, pending feedback and retry behavior should each proposed form use?", "blocking": false}
+  ],
+  "applicability": "applicable",
+  "findings": [
+    {
+      "provenance": "Observed",
+      "statement": "S1 sign-in is the only pictured screen: a 480×360 white canvas carries an approximately centered black/gray outlined card at x≈70–410, y≈20–342 with the heading “Sign in”.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-001"]
+    },
+    {
+      "provenance": "Observed",
+      "statement": "S1 shows an “Email address” label and an empty bordered input with gray “name@example.com” placeholder; no account data is visible.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-002"]
+    },
+    {
+      "provenance": "Observed",
+      "statement": "S1 shows a “Password” label and bordered input with gray “********” placeholder; this does not establish that typed characters are masked.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-003"]
+    },
+    {
+      "provenance": "Observed",
+      "statement": "S1 shows a dark near-black rectangular “Sign in” button; no button activation or authentication result is visible.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-004"]
+    },
+    {
+      "provenance": "Observed",
+      "statement": "S1 contains gray footer text “No account? Contact your administrator.”; no contact action is shown.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-005"]
+    },
+    {
+      "provenance": "Observed",
+      "statement": "S1 displays a blue underlined “Forgot password?” link; its destination and operation are not visible.",
+      "source_references": [{"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}],
+      "requirement_ids": ["REQ-006"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S1 should use a password-type input to mask characters entered after the pictured placeholder and give the labeled inputs and visible link/button programmatic accessible names. Make “Forgot password?” open proposed S2 without assuming a sign-in outcome.",
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ],
+      "requirement_ids": ["REQ-002", "REQ-003", "REQ-004", "REQ-006"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S2 reset request should have a labeled account/email identifier input, request control and return-to-S1 link; ordinary submissions should reach S3 with identical responses for otherwise equivalent existing and nonexistent identifiers. A known account may have no more than five accepted reset requests in an hour; throttled feedback must not reveal existence, and whether it equals the ordinary response remains open.",
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-006", "REQ-007", "REQ-008", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S3 request confirmation should show generic, account-independent ordinary-request copy and a named S1 return link, without account-found status, reset-link secret or account-specific data; exact copy and throttled-request presentation remain undecided.",
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-007", "REQ-008", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "An issued, unused link younger than 30 minutes from issuance may lead to S4 new password, a labeled password-type input and submit control. Recheck link eligibility on completion: an invalid, already-used or expired link cannot complete the reset, including exactly 30 minutes after issuance.",
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-009", "REQ-010", "REQ-011", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "Only after a valid S4 reset changes the synthetic account password and consumes the link should S5 show success and an S1 return link. Successful reset must sign out all active sessions and notify the account owner using the specified in-memory sink; the success page alone cannot verify those technical guarantees or imply external delivery.",
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-009", "REQ-011", "REQ-012", "REQ-013", "REQ-014", "REQ-015", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S6 should communicate that an invalid, expired or already-used link cannot complete a reset without showing the link secret, offer a new S2 request and S1 return, and omit password submission through a rejected link. Whether to distinguish the three reasons in public copy is unresolved.",
+      "source_references": [{"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}],
+      "requirement_ids": ["REQ-009", "REQ-010", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "For S1–S6, use server-rendered pages with logical keyboard/focus order, keyboard-operable links/buttons, visible focus and readable contrast; keep persistent input labels and accessible names, associate errors with inputs, announce status/errors, and focus the new heading or error summary after navigation. None of these accessibility or rendering properties is proven by the static image.",
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-006", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S1 and S2 should keep labeled fields empty initially, identify required-field failures without inferring authentication, and announce associated validation/server errors. S2/S3 should preserve account non-disclosure, including during generic pending feedback; the exact malformed-identifier rule and throttle UX remain open.",
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ],
+      "requirement_ids": ["REQ-002", "REQ-003", "REQ-004", "REQ-007", "REQ-008"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "S4 should require a nonempty new password without inventing complexity rules; invalid/used/expired links or server failures show announced, recoverable errors rather than success. S5 and S6 need no form fields: S5 must never claim success after failure, and S6 gives named navigation without exposing a secret. Pending states, if needed, should not duplicate submissions or leak account status.",
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-009", "REQ-010", "REQ-011", "REQ-012", "REQ-013", "REQ-017"]
+    },
+    {
+      "provenance": "Proposed",
+      "statement": "REQ-007–REQ-021 have no direct visual coverage. S2–S6 are possible UI touchpoints for REQ-007–REQ-013 and REQ-017, not proof of security behavior, synthetic data, in-memory notifications, Python 3.12/Flask, server rendering, pytest coverage, production-limitations documentation, non-deployment or absence of deployment workflows.",
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ],
+      "requirement_ids": ["REQ-007", "REQ-008", "REQ-009", "REQ-010", "REQ-011", "REQ-012", "REQ-013", "REQ-014", "REQ-015", "REQ-016", "REQ-017", "REQ-018", "REQ-019", "REQ-020", "REQ-021"]
+    }
+  ],
+  "not_applicable_reason": null
+}
