@@ -80,6 +80,7 @@ class InMemoryStore:
         self._accounts: dict[str, Account] = {}
         self._accepted_requests: dict[str, tuple[datetime, ...]] = {}
         self._reset_tokens: dict[str, ResetToken] = {}
+        self._reset_intents: dict[str, ResetIntent] = {}
         self._sessions: dict[str, ActiveSession] = {}
 
     def add_account(self, account: Account) -> None:
@@ -174,6 +175,84 @@ class InMemoryStore:
         with self._lock:
             return self._reset_tokens.get(token_digest)
 
+    def reset_intents(self) -> tuple[ResetIntent, ...]:
+        """Return metadata only; neither the link nor the intent secret is stored."""
+        with self._lock:
+            return tuple(self._reset_intents.values())
+
+    def create_reset_intent(
+        self,
+        raw_token: str,
+        browser_binding: str,
+        now: datetime,
+        token_factory: TokenFactory = secure_token,
+    ) -> str | None:
+        """Atomically check an unused link and mint a short-lived browser-bound intent."""
+        if (
+            not isinstance(raw_token, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", raw_token) is None
+            or not isinstance(browser_binding, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", browser_binding) is None
+        ):
+            return None
+        token_digest = sha256(raw_token.encode("ascii")).hexdigest()
+        with self._lock:
+            token = self._reset_tokens.get(token_digest)
+            if not self._eligible_reset_token(token, now):
+                return None
+            secret = token_factory()
+            if (
+                not isinstance(secret, str)
+                or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", secret) is None
+            ):
+                raise ValueError("Invalid reset intent secret")
+            intent_digest = sha256(secret.encode("ascii")).hexdigest()
+            if (
+                intent_digest in self._reset_intents
+                or intent_digest in self._reset_tokens
+                or secret == browser_binding
+            ):
+                raise ValueError("Reset intent collision")
+            self._reset_intents[intent_digest] = ResetIntent(
+                intent_digest,
+                token_digest,
+                now + timedelta(minutes=5),
+                sha256(browser_binding.encode("ascii")).hexdigest(),
+            )
+            return secret
+
+    def check_reset_intent(
+        self, secret: str | None, browser_binding: str | None, now: datetime
+    ) -> bool:
+        """Recheck both intent lifetime and original issuance deadline on every GET."""
+        if (
+            not isinstance(secret, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", secret) is None
+            or not isinstance(browser_binding, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", browser_binding) is None
+        ):
+            return False
+        intent_digest = sha256(secret.encode("ascii")).hexdigest()
+        binding_digest = sha256(browser_binding.encode("ascii")).hexdigest()
+        with self._lock:
+            intent = self._reset_intents.get(intent_digest)
+            return bool(
+                intent is not None
+                and intent.browser_digest == binding_digest
+                and now < intent.expires_at_utc
+                and self._eligible_reset_token(
+                    self._reset_tokens.get(intent.token_digest), now
+                )
+            )
+
+    @staticmethod
+    def _eligible_reset_token(token: ResetToken | None, now: datetime) -> bool:
+        return bool(
+            token is not None
+            and token.consumed_at_utc is None
+            and token.issued_at_utc <= now < token.issued_at_utc + timedelta(minutes=30)
+        )
+
     def issue_if_eligible(
         self,
         identifier: str,
@@ -210,6 +289,14 @@ class ResetToken:
     account_id: str
     issued_at_utc: datetime
     consumed_at_utc: datetime | None = None
+
+
+@dataclass(frozen=True)
+class ResetIntent:
+    intent_digest: str
+    token_digest: str
+    expires_at_utc: datetime
+    browser_digest: str
 
 
 @dataclass(frozen=True)

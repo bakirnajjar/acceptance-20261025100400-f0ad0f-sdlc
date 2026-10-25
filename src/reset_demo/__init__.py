@@ -3,8 +3,17 @@
 import re
 from secrets import compare_digest
 
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask.sessions import SecureCookieSessionInterface
+from werkzeug.serving import WSGIRequestHandler
 
 from reset_demo.foundation import (
     AppResources,
@@ -26,6 +35,13 @@ class LocalSessionInterface(SecureCookieSessionInterface):
 
     def get_cookie_secure(self, app: Flask) -> bool:
         return request.is_secure or super().get_cookie_secure(app)
+
+
+class PathFreeRequestHandler(WSGIRequestHandler):
+    """Do not log request targets: the initial reset URL contains a bearer secret."""
+
+    def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
+        self.log("info", "HTTP response %s", code)
 
 
 def _valid_identifier(identifier: str) -> bool:
@@ -63,7 +79,7 @@ def create_app(
 
     @app.after_request
     def protect_reset_pages(response):
-        if request.path in ("/reset/request", "/reset/confirmation"):
+        if request.path.startswith("/reset/"):
             response.headers["Cache-Control"] = "no-store"
             response.headers["Referrer-Policy"] = "no-referrer"
         return response
@@ -128,9 +144,66 @@ def create_app(
     def reset_confirmation() -> str:
         return render_template("reset_confirmation.html")
 
+    @app.get("/reset/new")
+    def reset_new():
+        if not resources.store.check_reset_intent(
+            request.cookies.get("reset_intent"),
+            session.get("reset_browser"),
+            resources.now(),
+        ):
+            return redirect(url_for("reset_unavailable"), code=303)
+        csrf_token = session.get("reset_csrf")
+        if not isinstance(csrf_token, str):
+            csrf_token = secure_token()
+            session["reset_csrf"] = csrf_token
+        return render_template("reset_new.html", csrf_token=csrf_token)
+
+    @app.post("/reset/complete")
+    def reset_complete():
+        # TASK-007 will implement the atomic reset. Never report success or
+        # change private state here, even for a valid intent and CSRF token.
+        return redirect(url_for("reset_unavailable"), code=303)
+
+    @app.get("/reset/unavailable")
+    def reset_unavailable() -> str:
+        return render_template("reset_unavailable.html")
+
+    @app.get("/reset/<opaque_token>")
+    def reset_link(opaque_token: str):
+        binding = session.get("reset_browser")
+        if (
+            not isinstance(binding, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,256}", binding) is None
+        ):
+            binding = secure_token()
+        try:
+            intent = resources.store.create_reset_intent(
+                opaque_token, binding, resources.now()
+            )
+        except (RuntimeError, ValueError, TypeError):
+            intent = None
+        if intent is None:
+            response = make_response(redirect(url_for("reset_unavailable"), code=303))
+            response.delete_cookie("reset_intent", path="/reset")
+            return response
+        session["reset_browser"] = binding
+        response = make_response(redirect(url_for("reset_new"), code=303))
+        response.set_cookie(
+            "reset_intent",
+            intent,
+            max_age=300,
+            path="/reset",
+            httponly=True,
+            secure=request.is_secure,
+            samesite="Lax",
+        )
+        return response
+
     return app
 
 
 def main() -> None:
     """Run the local development server."""
-    create_app().run(host="127.0.0.1", port=5000)
+    create_app().run(
+        host="127.0.0.1", port=5000, request_handler=PathFreeRequestHandler
+    )

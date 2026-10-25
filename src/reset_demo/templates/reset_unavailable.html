@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Reset unavailable{% endblock %}
+{% block content %}
+  <h1 id="page-title" tabindex="-1">Reset unavailable</h1>
+  <p class="notice" role="status">This reset link is unavailable. You can request a new one.</p>
+  <p class="footer"><a href="{{ url_for('reset_request') }}">Request a new reset link</a></p>
+  <p class="footer"><a href="{{ url_for('sign_in') }}">Return to sign in</a></p>
+{% endblock %}

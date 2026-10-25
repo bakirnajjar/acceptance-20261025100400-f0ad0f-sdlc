@@ -2,10 +2,10 @@
 
 Python 3.12 Flask/Jinja foundation for a local synthetic demo. The factory
 creates a fresh, process-local locked account store and a separate private
-in-memory notification sink for each app. Sign-in, recovery request and
-acknowledgement screens are server-rendered. Private reset-link issuance and
-a revocable session registry are implemented, but browser reset completion
-and authentication are not. No live accounts or credentials are needed; do
+in-memory notification sink for each app. Sign-in, recovery request,
+acknowledgement and reset-entry screens are server-rendered. Private reset-link
+issuance and a revocable session registry are implemented, but browser reset
+completion and authentication are not. No live accounts or credentials are needed; do
 not enter real credentials.
 
 ## Setup
@@ -48,8 +48,9 @@ Open http://127.0.0.1:5000/sign-in to view the sign-in card, then follow
 an explicit unavailable message without authenticating or storing credentials.
 The request form uses a CSRF token and returns the same generic confirmation
 for eligible, unknown and capped valid identifiers. A known eligible request
-records a private link in the in-memory sink, not an email or public response;
-there is no browser reset-link or completion flow yet. The original foundation
+records a private link in the in-memory sink, not an email or public response.
+A private sink link can open the reset form, but submission returns an unavailable
+page without changing the password. The original foundation
 placeholder remains at `/`. This development server is for local use only.
 No environment variables are required at this stage. Accounts
 `alex@example.test` and `blair@example.test` are
@@ -83,3 +84,18 @@ completion is not implemented yet and therefore does not revoke sessions;
 every future authenticated request must check the store before trusting a
 session. No authenticated session cookies or public session routes are
 implemented (the request form uses a separate CSRF session cookie).
+
+An unused link is eligible on GET strictly before its issuance time plus 30
+minutes. The GET does not consume it. It redirects to secret-free `/reset/new`
+using a five-minute opaque intent stored by digest in the app-local store,
+bound to a browser's signed session and transmitted in an HttpOnly, SameSite=Lax
+cookie (Secure over HTTPS). Each S4 GET rechecks both the intent and original
+link deadline. S4 has a labeled password form and CSRF field; `/reset/complete`
+currently rejects all submissions, including valid ones, without success or
+mutation. Expired, used or unknown links show generic `/reset/unavailable` with
+retry and sign-in navigation. Reset pages and redirects are non-cacheable with
+no-referrer policy. The local development server omits request targets from
+its access log; the initial bearer URL still appears in browser history and
+may be visible to clients, proxies or other infrastructure logging it. Local
+HTTP and process-local intent storage are not production transport or
+persistence guarantees.
