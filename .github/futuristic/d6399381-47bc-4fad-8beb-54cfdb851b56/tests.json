@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "test_cases": [
+    {"id": "TC-001", "status": "automated", "reference": "tests/test_foundation.py::test_tc_001_synthetic_isolated_flask_foundation"},
+    {"id": "TC-002", "status": "manual", "reason": "tests/test_foundation.py::test_tc_002_local_runtime_and_clock_contract checks Python, Flask and dependency declarations; deployment-configuration absence requires the separate repository diff inspection, not an executable assertion."},
+    {"id": "TC-003", "status": "manual", "reason": "tests/test_sign_in.py::test_tc_003_sign_in_server_markup checks HTML and intended CSS only; the 480x360 rendered card geometry, colors and wireframe comparison need a browser visual check."},
+    {"id": "TC-004", "status": "manual", "reason": "tests/test_sign_in.py::test_tc_004_sign_in_control_semantics_and_unavailable_submission checks markup and server response, not actual typed-character masking, keyboard/focus behavior, contrast, accessible names or announced blank-field errors in a browser."},
+    {"id": "TC-005", "status": "manual", "reason": "tests/test_sign_in.py::test_tc_005_forgot_password_enters_server_rendered_request_page checks the link and HTTP destination; pointer and keyboard activation and accessible naming need a browser check."},
+    {"id": "TC-006", "status": "manual", "reason": "tests/test_reset_request.py::test_tc_006_request_and_confirmation_are_accessible_server_pages checks S2/S3 markup and HTTP flow, not real keyboard traversal, focus or accessibility-tree status announcement."},
+    {"id": "TC-007", "status": "automated", "reference": "tests/test_reset_request.py::test_tc_007_known_unknown_capped_full_http_parity_and_private_links"},
+    {"id": "TC-008", "status": "automated", "reference": "tests/test_recovery.py::test_tc_008_fifth_sixth_and_trailing_hour_boundary"},
+    {"id": "TC-009", "status": "automated", "reference": "tests/test_recovery.py::test_tc_009_concurrent_normalized_account_scoped_requests"},
+    {"id": "TC-010", "status": "automated", "reference": "tests/test_recovery.py::test_tc_010_token_and_sink_failures_do_not_commit"},
+    {"id": "TC-011", "status": "manual", "reason": "tests/test_reset_request.py::test_tc_011_invalid_identifier_and_csrf_are_generic_and_do_not_issue checks rejection, state and error attributes; visible focus and screen-reader announcement of associated errors have no browser/accessibility-tree check."},
+    {"id": "TC-012", "status": "manual", "reason": "tests/test_reset_link.py::test_tc_012_link_get_twice_is_unused_with_secret_free_browser_handoff and tests/test_behavioral_gate.py::test_tc_012_loopback_http_omits_initial_bearer_from_response_and_access_log check HTTP and included app-server logs; keyboard operation, browser history/referrer behavior and other infrastructure logs remain unverified."},
+    {"id": "TC-013", "status": "automated", "reference": "tests/test_reset_link.py::test_tc_013_unknown_malformed_used_and_direct_new_are_unavailable"},
+    {"id": "TC-014", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_014_complete_rechecks_exact_issuance_deadline"},
+    {"id": "TC-015", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_015_success_commits_hash_token_sessions_and_one_notice"},
+    {"id": "TC-016", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_016_replay_has_no_further_effects"},
+    {"id": "TC-017", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_017_browser_intent_and_csrf_are_required"},
+    {"id": "TC-018", "status": "automated", "reference": "tests/test_sessions.py::test_tc_018_account_scoped_revocation"},
+    {"id": "TC-019", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_019_sink_failure_after_append_and_hash_failure_leave_no_effects"},
+    {"id": "TC-020", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_020_competing_completions_have_exactly_one_winner"},
+    {"id": "TC-021", "status": "manual", "reason": "tests/test_reset_link.py::test_tc_021_form_and_unavailable_are_accessible and tests/test_reset_completion.py::test_tc_021_success_and_unavailable_are_accessible_end_states check HTML, errors and state; keyboard/focus, typed masking and accessibility-tree announcements require browser verification."},
+    {"id": "TC-022", "status": "automated", "reference": "tests/test_reset_completion.py::test_tc_022_notices_remain_private_without_outbound_transport"},
+    {"id": "TC-023", "status": "automated", "reference": "tests/test_behavioral_gate.py::test_tc_023_http_journey_parity_authorization_owner_effects_and_no_transport"},
+    {"id": "TC-024", "status": "manual", "reason": "README.md production limitations and local instructions were reviewed, but no executable documentation assertion covers the required wording and completeness."},
+    {"id": "TC-025", "status": "manual", "reason": "No complete auditable delivery action record was available to review for deployment or publication operations; the no-deployment criterion remains unverified."},
+    {"id": "TC-026", "status": "manual", "reason": "The tracked/untracked diff against baseline 0065943 and baseline/current .github/workflows listings were checked with no workflow or deployment files found; the case also requires a complete deployment action-record review, which is unavailable, so overall verification remains open."}
+  ]
+}
