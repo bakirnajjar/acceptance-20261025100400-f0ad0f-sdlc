@@ -80,6 +80,7 @@ def test_tc_014_complete_rechecks_exact_issuance_deadline():
     assert resources.store.reset_tokens()[0].consumed_at_utc == clock.value
 
     app, resources, clock, link = setup()
+    owner_session = resources.store.create_session(A)
     clock.value = T + timedelta(minutes=29)
     client, csrf = open_form(app, link)
     before = state(resources)
@@ -92,6 +93,7 @@ def test_tc_014_complete_rechecks_exact_issuance_deadline():
     clock.value += timedelta(microseconds=1)
     assert submit(client, csrf).headers["Location"] == "/reset/unavailable"
     assert state(resources) == before
+    assert resources.store.check_session(A, owner_session)
 
 
 def test_tc_015_success_commits_hash_token_sessions_and_one_notice(caplog):
