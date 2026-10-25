@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from secrets import token_urlsafe
 from threading import RLock
 from typing import Protocol
@@ -61,14 +63,24 @@ class Account:
     synthetic_owner: str
 
 
+@dataclass(frozen=True)
+class ActiveSession:
+    """Server-held session metadata; never contains the bearer secret."""
+
+    session_id_digest: str
+    account_id: str
+    active: bool = True
+
+
 class InMemoryStore:
-    """One-process account state, with all reads and writes guarded by its lock."""
+    """One-process account, reset and session state guarded by one lock."""
 
     def __init__(self) -> None:
         self._lock = RLock()
         self._accounts: dict[str, Account] = {}
         self._accepted_requests: dict[str, tuple[datetime, ...]] = {}
         self._reset_tokens: dict[str, ResetToken] = {}
+        self._sessions: dict[str, ActiveSession] = {}
 
     def add_account(self, account: Account) -> None:
         if (
@@ -78,7 +90,9 @@ class InMemoryStore:
         ):
             raise ValueError("Only normalized synthetic .test accounts are allowed")
         with self._lock:
-            if account.normalized_identifier in self._accounts:
+            if account.normalized_identifier in self._accounts or any(
+                existing.id == account.id for existing in self._accounts.values()
+            ):
                 raise ValueError("Account already exists")
             self._accounts[account.normalized_identifier] = account
 
@@ -89,6 +103,62 @@ class InMemoryStore:
     def accounts(self) -> tuple[Account, ...]:
         with self._lock:
             return tuple(self._accounts.values())
+
+    def create_session(
+        self, account_id: str, token_factory: TokenFactory = secure_token
+    ) -> str:
+        """Create an opaque bearer for a known account; retain only its digest.
+
+        This is a private store operation for fixture creation until a separate
+        authenticated sign-in flow is designed. No HTTP route calls it.
+        """
+        with self._lock:
+            if not any(account.id == account_id for account in self._accounts.values()):
+                raise ValueError("Unknown account")
+            secret = token_factory()
+            if (
+                not isinstance(secret, str)
+                or re.fullmatch(r"[A-Za-z0-9_-]{32,}", secret) is None
+            ):
+                raise ValueError("Invalid session secret")
+            digest = sha256(secret.encode("ascii")).hexdigest()
+            if digest in self._sessions:
+                raise ValueError("Session collision")
+            self._sessions[digest] = ActiveSession(digest, account_id)
+            return secret
+
+    def check_session(self, account_id: str, secret: str) -> bool:
+        """Check the server-side activity and owner, not a client-only cookie."""
+        if (
+            not isinstance(secret, str)
+            or re.fullmatch(r"[A-Za-z0-9_-]{32,}", secret) is None
+        ):
+            return False
+        digest = sha256(secret.encode("ascii")).hexdigest()
+        with self._lock:
+            session = self._sessions.get(digest)
+            return (
+                session is not None
+                and session.account_id == account_id
+                and session.active
+            )
+
+    def revoke_all_sessions(self, account_id: str) -> None:
+        """Revoke every represented session for this owner under the store lock."""
+        with self._lock:
+            self._sessions = {
+                digest: (
+                    ActiveSession(digest, session.account_id, active=False)
+                    if session.account_id == account_id
+                    else session
+                )
+                for digest, session in self._sessions.items()
+            }
+
+    def sessions(self) -> tuple[ActiveSession, ...]:
+        """Private immutable snapshot for verifying represented session state."""
+        with self._lock:
+            return tuple(self._sessions.values())
 
     def accepted_requests(self, account_id: str) -> tuple[datetime, ...]:
         """Return a private, immutable snapshot of committed issuances."""
