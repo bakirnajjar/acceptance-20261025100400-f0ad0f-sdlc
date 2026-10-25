@@ -1,0 +1,289 @@
+{
+  "schema_version": "1.0",
+  "stage": "requirements_analysis",
+  "source_references": [
+    {
+      "source_type": "user_story",
+      "source_id": "user_story",
+      "locator": "characters 0-16000"
+    },
+    {
+      "source_type": "attachment",
+      "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c",
+      "locator": "sign-in-wireframe.png"
+    },
+    {
+      "source_type": "knowledge",
+      "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5",
+      "locator": "v1, chunk 0"
+    }
+  ],
+  "assumptions": [
+    "acceptance-20261025100400-f0ad0f-skill-sentinel — the acceptance skill produced this output.",
+    "acceptance-20261025100400-f0ad0f-same-agent-revision",
+    "The complete pinned story has no end marker, and the attachment has no visible acceptance marker; neither marker is invented.",
+    "For nonexistent accounts, the reset-request response remains independent of account existence; the per-account request limit is applied to known accounts without inventing an unknown-account threshold.",
+    "A throttled request does not reveal whether an account exists; the exact throttling response is not specified.",
+    "Every active session means every session represented by the application for the account; the session mechanism is not prescribed.",
+    "The sign-in button is a visible control only: successful authentication, registration, password policy, reset-link transport, restart persistence, and exact recovery-page layout are not specified by the evidence.",
+    "The in-memory notification sink is the observable destination for reset notifications; no external delivery channel is assumed."
+  ],
+  "open_questions": [
+    {
+      "question": "How should reset requests for nonexistent accounts count toward the per-account hourly limit?",
+      "blocking": false,
+      "context": "Assumption: apply the five-per-account-per-hour limit to known accounts and keep the response independent of account existence; do not invent an unknown-account limit."
+    },
+    {
+      "question": "What response should a throttled reset request show, and must it match the ordinary request response?",
+      "blocking": false,
+      "context": "Assumption: do not reveal account existence, but leave the precise throttling response unspecified."
+    },
+    {
+      "question": "What constitutes an active session in the small application?",
+      "blocking": false,
+      "context": "Assumption: use an application-local representation allowing a successful reset to invalidate every represented active session of that account."
+    },
+    {
+      "question": "Should the displayed Sign in button authenticate, and what should the outcome be?",
+      "blocking": false,
+      "context": "Assumption: require the displayed control without claiming an authentication outcome."
+    },
+    {
+      "question": "What policy should govern a new password?",
+      "blocking": false,
+      "context": "Assumption: leave password length and complexity rules unspecified."
+    },
+    {
+      "question": "How should reset links be transported to account owners?",
+      "blocking": false,
+      "context": "Assumption: capture notifications in the in-memory sink without external sending or a prescribed transport channel."
+    },
+    {
+      "question": "Must synthetic accounts, reset state, or notifications survive an application restart?",
+      "blocking": false,
+      "context": "Assumption: do not require persistence across restarts."
+    },
+    {
+      "question": "What should the recovery-request and new-password pages look like?",
+      "blocking": false,
+      "context": "Assumption: use server-rendered pages for the functional recovery flow, without inventing a visual design."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "statement": "The sign-in page displays a centered outlined sign-in card on a white background with a “Sign in” heading.",
+      "acceptance_criteria": [
+        "Given the sign-in page is requested, when it is rendered, then a centered outlined card with the heading “Sign in” appears on a white background."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"},
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "statement": "The sign-in card displays an input labeled “Email address” with placeholder “name@example.com”.",
+      "acceptance_criteria": [
+        "Given the sign-in page is requested, when the card is rendered, then an input labeled “Email address” has placeholder “name@example.com”."
+      ],
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "statement": "The sign-in card displays a masked password input labeled “Password” with placeholder “********”.",
+      "acceptance_criteria": [
+        "Given the sign-in page is requested, when the card is rendered, then an input labeled “Password” masks entered characters and has placeholder “********”."
+      ],
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "statement": "The sign-in card displays a dark rectangular “Sign in” button.",
+      "acceptance_criteria": [
+        "Given the sign-in page is requested, when the card is rendered, then a dark rectangular button labeled “Sign in” is visible."
+      ],
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "statement": "The sign-in card displays the footer text “No account? Contact your administrator.”",
+      "acceptance_criteria": [
+        "Given the sign-in page is requested, when the card is rendered, then its footer reads “No account? Contact your administrator.”"
+      ],
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"}
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "statement": "The sign-in page provides a blue underlined “Forgot password?” link that starts a reset request.",
+      "acceptance_criteria": [
+        "Given the sign-in page is displayed, when the user selects the blue underlined “Forgot password?” link, then a password-reset request flow starts."
+      ],
+      "source_references": [
+        {"source_type": "attachment", "source_id": "fd6b3020-ac35-442c-bd77-c53062c11e9c", "locator": "sign-in-wireframe.png"},
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "statement": "The response to a password-reset request is identical whether the account exists or not.",
+      "acceptance_criteria": [
+        "Given one existing and one nonexistent account identifier, when otherwise equivalent reset requests are submitted, then their responses are identical and do not distinguish account existence."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "statement": "Reset requests are limited to five accepted requests per account per hour.",
+      "acceptance_criteria": [
+        "Given a known account and a one-hour interval, when six reset requests are submitted for that account within the interval, then no more than five requests are accepted."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "statement": "A reset link can complete a password reset only once.",
+      "acceptance_criteria": [
+        "Given a valid reset link has completed a reset, when the same link is used again, then it cannot complete another reset."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "statement": "A reset link's 30-minute expiry clock starts when the link is issued; at 30 minutes or later after issuance, the link cannot complete a reset.",
+      "acceptance_criteria": [
+        "Given a reset link issued at time T, when a reset is attempted with the link exactly 30 minutes after T or later, then the link cannot complete the reset."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "statement": "Completing a valid reset changes the synthetic account's password.",
+      "acceptance_criteria": [
+        "Given a synthetic account and its valid unused unexpired reset link, when the owner completes the reset with a new password, then the account's password changes to the new password."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"},
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "statement": "Completing a password reset signs the account out of every active session.",
+      "acceptance_criteria": [
+        "Given an account with multiple active sessions represented by the application, when its password reset completes, then none of those sessions remains signed in."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"}
+      ]
+    },
+    {
+      "id": "REQ-013",
+      "statement": "Every successful password reset notifies the account owner.",
+      "acceptance_criteria": [
+        "Given a synthetic account, when a password reset succeeds, then a notification addressed to its owner is captured after the reset in the in-memory sink."
+      ],
+      "source_references": [
+        {"source_type": "knowledge", "source_id": "bcf198d8-a628-401c-8641-b726fcbd00b5", "locator": "v1, chunk 0"},
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-014",
+      "statement": "The application uses synthetic accounts rather than real customer accounts.",
+      "acceptance_criteria": [
+        "Given the application is run, when its account data is inspected, then the accounts used are synthetic, not real customer identities."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-015",
+      "statement": "The application captures its notifications in an in-memory notification sink.",
+      "acceptance_criteria": [
+        "Given a notification is produced, when its destination is inspected, then it is captured in an in-memory notification sink rather than delivered externally."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-016",
+      "statement": "The application is implemented in Python 3.12 with Flask.",
+      "acceptance_criteria": [
+        "Given the delivered application, when its runtime and framework are inspected, then it uses Python 3.12 and Flask."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-017",
+      "statement": "Application pages are rendered on the server.",
+      "acceptance_criteria": [
+        "Given an application page is requested, when the server responds, then its page content is server-rendered."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-018",
+      "statement": "Automated pytest tests cover the specified application behaviors.",
+      "acceptance_criteria": [
+        "Given the delivered project, when its automated tests are run with pytest, then they exercise the specified sign-in and password-reset behaviors."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-019",
+      "statement": "Project documentation identifies the application's production limitations.",
+      "acceptance_criteria": [
+        "Given the delivered project, when its documentation is reviewed, then it identifies limitations of using the small application in production."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-020",
+      "statement": "The project is not deployed as part of this work.",
+      "acceptance_criteria": [
+        "Given the project is delivered, when the work performed is reviewed, then no deployment was performed."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    },
+    {
+      "id": "REQ-021",
+      "statement": "No deployment workflows are added to the project.",
+      "acceptance_criteria": [
+        "Given the delivered repository changes, when workflow files are reviewed, then no deployment workflow has been added."
+      ],
+      "source_references": [
+        {"source_type": "user_story", "source_id": "user_story", "locator": "characters 0-16000"}
+      ]
+    }
+  ]
+}
