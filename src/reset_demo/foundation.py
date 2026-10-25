@@ -1,5 +1,7 @@
 """Process-local synthetic account and private notification foundations."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -65,6 +67,8 @@ class InMemoryStore:
     def __init__(self) -> None:
         self._lock = RLock()
         self._accounts: dict[str, Account] = {}
+        self._accepted_requests: dict[str, tuple[datetime, ...]] = {}
+        self._reset_tokens: dict[str, ResetToken] = {}
 
     def add_account(self, account: Account) -> None:
         if (
@@ -86,6 +90,57 @@ class InMemoryStore:
         with self._lock:
             return tuple(self._accounts.values())
 
+    def accepted_requests(self, account_id: str) -> tuple[datetime, ...]:
+        """Return a private, immutable snapshot of committed issuances."""
+        with self._lock:
+            return self._accepted_requests.get(account_id, ())
+
+    def reset_tokens(self) -> tuple[ResetToken, ...]:
+        """Return private token metadata; raw bearer secrets are never stored here."""
+        with self._lock:
+            return tuple(self._reset_tokens.values())
+
+    def get_reset_token(self, token_digest: str) -> ResetToken | None:
+        with self._lock:
+            return self._reset_tokens.get(token_digest)
+
+    def issue_if_eligible(
+        self,
+        identifier: str,
+        clock: Clock,
+        create_issue: Callable[[Account, datetime], tuple[ResetToken, Notification]],
+        sink: NotificationSink,
+    ) -> None:
+        """Serialize the account check, trailing-hour limit and private commit."""
+        with self._lock:
+            now = clock()
+            account = self._accounts.get(identifier)
+            if account is None:
+                return
+            previous = self._accepted_requests.get(account.id, ())
+            recent = tuple(t for t in previous if t > now - timedelta(hours=1))
+            if len(recent) >= 5:
+                return
+
+            token, notice = create_issue(account, now)
+            if token.token_digest in self._reset_tokens:
+                raise ValueError("Reset token collision")
+            accepted = {**self._accepted_requests, account.id: (*recent, now)}
+            tokens = {**self._reset_tokens, token.token_digest: token}
+
+            def commit() -> None:
+                self._accepted_requests, self._reset_tokens = accepted, tokens
+
+            sink.record_atomically(notice, commit)
+
+
+@dataclass(frozen=True)
+class ResetToken:
+    token_digest: str
+    account_id: str
+    issued_at_utc: datetime
+    consumed_at_utc: datetime | None = None
+
 
 @dataclass(frozen=True)
 class Notification:
@@ -105,6 +160,19 @@ class NotificationSink:
     def record(self, notification: Notification) -> None:
         with self._lock:
             self._notifications.append(notification)
+
+    def record_atomically(
+        self, notification: Notification, commit: Callable[[], None]
+    ) -> None:
+        """Undo even an append-then-raise sink failure before publishing store state."""
+        with self._lock:
+            previous = self._notifications[:]
+            try:
+                self.record(notification)
+                commit()
+            except Exception:
+                self._notifications[:] = previous
+                raise
 
     def snapshot(self) -> tuple[Notification, ...]:
         with self._lock:
