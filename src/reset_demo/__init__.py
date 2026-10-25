@@ -1,6 +1,6 @@
 """Local Flask application foundation."""
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from reset_demo.foundation import (
     AppResources,
@@ -40,6 +40,20 @@ def create_app(
     @app.get("/")
     def index() -> str:
         return render_template("index.html")
+
+    @app.route("/sign-in", methods=["GET", "POST"])
+    def sign_in() -> str | tuple[str, int]:
+        # No authentication contract exists. Never inspect or echo submitted credentials.
+        if request.method == "POST":
+            return render_template("sign_in.html", unavailable=True), 501
+        return render_template("sign_in.html", unavailable=False)
+
+    @app.route("/reset/request", methods=["GET", "POST"])
+    def reset_request() -> str | tuple[str, int]:
+        # Accept no requests or identifiers until the recovery service is implemented.
+        if request.method == "POST":
+            return render_template("reset_request.html", unavailable=True), 501
+        return render_template("reset_request.html", unavailable=False)
 
     return app
 

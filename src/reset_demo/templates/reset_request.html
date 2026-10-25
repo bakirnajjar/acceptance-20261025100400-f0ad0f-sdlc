@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Reset request{% endblock %}
+{% block content %}
+  <h1 id="page-title" tabindex="-1">Reset password</h1>
+  <p class="notice" id="request-unavailable"{% if unavailable %} role="alert"{% endif %}>Reset requests are not available yet.</p>
+  <form action="{{ url_for('reset_request') }}" method="post">
+    <label for="identifier">Email address</label>
+    <input id="identifier" name="identifier" type="email" autocomplete="email" required aria-describedby="request-unavailable">
+    <button type="submit" aria-describedby="request-unavailable">Request reset</button>
+  </form>
+  <p class="footer"><a href="{{ url_for('sign_in') }}">Return to sign in</a></p>
+{% endblock %}

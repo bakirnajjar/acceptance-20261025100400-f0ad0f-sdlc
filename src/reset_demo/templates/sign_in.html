@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+  <h1 id="page-title" tabindex="-1">Sign in</h1>
+  {% if unavailable %}
+    <p class="notice" role="alert">Sign-in is not available in this demo.</p>
+  {% endif %}
+  <form action="{{ url_for('sign_in') }}" method="post">
+    <div class="field">
+      <label for="email">Email address</label>
+      <input id="email" name="email" type="email" placeholder="name@example.com" autocomplete="username" required>
+    </div>
+    <div>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" placeholder="********" autocomplete="current-password" required>
+    </div>
+    <a class="recovery-link" href="{{ url_for('reset_request') }}">Forgot password?</a>
+    <button type="submit">Sign in</button>
+  </form>
+  <p class="footer">No account? Contact your administrator.</p>
+{% endblock %}

@@ -104,8 +104,10 @@ def test_tc_001_synthetic_isolated_flask_foundation() -> None:
     assert b"private-marker" not in first_client.get("/").data
     for path in ("/notifications", "/test/sink", "/test/accounts"):
         assert first_client.get(path).status_code == 404
-    assert {rule.rule for rule in first.url_map.iter_rules()} <= {
+    assert {rule.rule for rule in first.url_map.iter_rules()} == {
         "/",
+        "/sign-in",
+        "/reset/request",
         "/static/<path:filename>",
     }
 
